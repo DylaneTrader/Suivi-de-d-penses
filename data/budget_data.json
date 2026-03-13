@@ -1,122 +1,47 @@
 {
-  "transactions": [
-    {
-      "id": "bf784891-65ea-4440-ab9d-7ea06033ac61",
-      "type": "depense",
-      "montant": 350.0,
-      "categorie": "Alimentation",
-      "description": "Courses semaine 1",
-      "date": "2026-01-10"
-    },
-    {
-      "id": "2de6f1b8-4b07-44b4-8506-6400f20c71bd",
-      "type": "depense",
-      "montant": 120.0,
-      "categorie": "Transport",
-      "description": "Abonnement train",
-      "date": "2026-01-05"
-    },
-    {
-      "id": "038c55d7-7cba-41d7-a527-11ee00ab5b0d",
-      "type": "revenu",
-      "montant": 2800.0,
-      "categorie": "Salaire",
-      "description": "Salaire janvier",
-      "date": "2026-01-31"
-    },
-    {
-      "id": "b2af8450-2e58-4e24-9bdd-f8d8b11a124e",
-      "type": "depense",
-      "montant": 89.0,
-      "categorie": "Loisirs",
-      "description": "Cinéma + restaurant",
-      "date": "2026-02-14"
-    },
-    {
-      "id": "40f6469d-1da9-48e1-aa3b-f0e7fe0221fd",
-      "type": "depense",
-      "montant": 420.0,
-      "categorie": "Alimentation",
-      "description": "Courses février",
-      "date": "2026-02-20"
-    },
-    {
-      "id": "eea13c82-5e17-4e88-9d2f-50e8fcbae3a7",
-      "type": "revenu",
-      "montant": 2800.0,
-      "categorie": "Salaire",
-      "description": "Salaire février",
-      "date": "2026-02-28"
-    },
-    {
-      "id": "aff6d5a3-10a6-4c12-ab62-c0fddb222c22",
-      "type": "depense",
-      "montant": 200.0,
-      "categorie": "Santé",
-      "description": "Dentiste",
-      "date": "2026-03-05"
-    },
-    {
-      "id": "2b3f8481-19d7-40c5-83f5-d9fbdda1a9d4",
-      "type": "depense",
-      "montant": 310.0,
-      "categorie": "Alimentation",
-      "description": "Courses mars",
-      "date": "2026-03-10"
-    },
-    {
-      "id": "64b1b6e3-56cc-4578-98f5-cfa215c7d60e",
-      "type": "revenu",
-      "montant": 2800.0,
-      "categorie": "Salaire",
-      "description": "Salaire mars",
-      "date": "2026-03-12"
-    },
-    {
-      "id": "a25f453f-df65-4218-b8c5-2acd8a83fda2",
-      "type": "depense",
-      "montant": 65.0,
-      "categorie": "Transport",
-      "description": "Essence",
-      "date": "2026-03-08"
-    },
-    {
-      "id": "24e95e26-be33-494c-8a55-9afe4de3d6af",
-      "type": "revenu",
-      "montant": 500.0,
-      "categorie": "Freelance",
-      "description": "Projet web",
-      "date": "2026-02-15"
-    }
-  ],
+  "transactions": [],
   "categories": {
     "depenses": [
       "Alimentation",
       "Transport",
       "Logement",
       "Santé",
-      "Loisirs",
       "Vêtements",
-      "Autre"
+      "Autre",
+      "Abonnements",
+      "Factures",
+      "Familles & amis",
+      "Investissements (FCP)",
+      "Cash"
     ],
     "revenus": [
       "Salaire",
-      "Freelance",
       "Investissements",
       "Autre"
     ]
   },
   "budget": {
-    "revenu_mensuel_cible": 3000.0,
+    "revenu_mensuel_cible": 535000.0,
     "limites": {
-      "Alimentation": 400.0,
-      "Transport": 150.0,
-      "Loisirs": 200.0,
-      "Santé": 150.0
+      "Alimentation": 75000.0,
+      "Transport": 35000.0,
+      "Logement": 110000.0,
+      "Santé": 20000.0,
+      "Vêtements": 29000.0,
+      "Autre": 21000.0,
+      "Abonnements": 60000.0,
+      "Factures": 30000.0,
+      "Familles & amis": 30000.0,
+      "Investissements (FCP)": 100000.0,
+      "Cash": 25000.0
     },
     "objectifs": {
-      "Salaire": 33600.0,
-      "Freelance": 6000.0
+      "Salaire": 1200000.0,
+      "Investissements": 600000.0
+    },
+    "revenus_mensuels": {
+      "Salaire": 500000.0,
+      "Investissements": 35000.0
     }
   }
 }

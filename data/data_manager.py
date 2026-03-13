@@ -19,7 +19,8 @@ DEFAULT_DATA = {
     "transactions": [],
     "categories": DEFAULT_CATEGORIES,
     "budget": {
-        "revenu_mensuel_cible": 0.0,
+        "revenu_mensuel_cible": 0.0,  # Legacy, kept for backward compatibility
+        "revenus_mensuels": {},  # New: revenus par catégorie {"Salaire": 500000, ...}
         "limites": {},
         "objectifs": {},
     },
@@ -99,13 +100,52 @@ def delete_category(type_: str, name: str) -> None:
     _save(data)
 
 
+def rename_category(type_: str, old_name: str, new_name: str) -> bool:
+    """Rename a category. Returns True if renamed, False if new name already exists or old not found."""
+    data = _load()
+    key = "depenses" if type_ == "depense" else "revenus"
+    
+    # Check if old category exists
+    if old_name not in data["categories"][key]:
+        return False
+    
+    # Check if new name already exists
+    if new_name in data["categories"][key]:
+        return False
+    
+    # Rename in categories list
+    data["categories"][key] = [new_name if c == old_name else c for c in data["categories"][key]]
+    
+    # Update all transactions with this category
+    for tx in data["transactions"]:
+        if tx["categorie"] == old_name:
+            tx["categorie"] = new_name
+    
+    # Update budget limites (for depenses)
+    if type_ == "depense" and old_name in data["budget"].get("limites", {}):
+        data["budget"]["limites"][new_name] = data["budget"]["limites"].pop(old_name)
+    
+    # Update budget objectifs (for revenus)
+    if type_ == "revenu" and old_name in data["budget"].get("objectifs", {}):
+        data["budget"]["objectifs"][new_name] = data["budget"]["objectifs"].pop(old_name)
+    
+    # Update revenus_mensuels (for revenus)
+    if type_ == "revenu" and old_name in data["budget"].get("revenus_mensuels", {}):
+        data["budget"]["revenus_mensuels"][new_name] = data["budget"]["revenus_mensuels"].pop(old_name)
+    
+    _save(data)
+    return True
+
+
 def get_budget() -> dict:
     return _load()["budget"]
 
 
-def save_budget(revenu_mensuel_cible: float, limites: dict, objectifs: dict) -> None:
+def save_budget(revenus_mensuels: dict, limites: dict, objectifs: dict) -> None:
     data = _load()
-    data["budget"]["revenu_mensuel_cible"] = revenu_mensuel_cible
+    data["budget"]["revenus_mensuels"] = revenus_mensuels
+    # Calculer le total pour backward compatibility
+    data["budget"]["revenu_mensuel_cible"] = sum(revenus_mensuels.values())
     data["budget"]["limites"] = limites
     data["budget"]["objectifs"] = objectifs
     _save(data)

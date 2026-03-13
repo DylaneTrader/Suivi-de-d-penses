@@ -124,17 +124,17 @@ depenses_mois = df_month[df_month["type"] == "depense"]["montant"].sum() if not 
 revenus_mois = df_month[df_month["type"] == "revenu"]["montant"].sum() if not df_month.empty else 0.0
 
 col1, col2, col3, col4 = st.columns(4)
-col1.metric("💸 Dépenses YTD", f"{depenses_ytd:,.2f} €", delta=None)
-col2.metric("💰 Revenus YTD", f"{revenus_ytd:,.2f} €", delta=None)
+col1.metric("💸 Dépenses YTD", f"{depenses_ytd:,.2f} FCFA", delta=None)
+col2.metric("💰 Revenus YTD", f"{revenus_ytd:,.2f} FCFA", delta=None)
 col3.metric(
     "📈 Solde YTD",
-    f"{solde_ytd:,.2f} €",
-    delta=f"{solde_ytd:+,.2f} €",
+    f"{solde_ytd:,.2f} FCFA",
+    delta=f"{solde_ytd:+,.2f} FCFA",
     delta_color="normal",
 )
 col4.metric(
     f"🗓️ Dépenses {months_fr[current_month]}",
-    f"{depenses_mois:,.2f} €",
+    f"{depenses_mois:,.2f} FCFA",
     delta=None,
 )
 
@@ -179,7 +179,7 @@ else:
         plot_bgcolor="rgba(244,247,251,1)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#E0E8F0", ticksuffix=" €"),
+        yaxis=dict(showgrid=True, gridcolor="#E0E8F0", ticksuffix=" FCFA"),
         font=dict(color="#3D4B5C"),
     )
     st.plotly_chart(fig_ytd, use_container_width=True)
@@ -234,7 +234,7 @@ else:
         plot_bgcolor="rgba(244,247,251,1)",
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
         xaxis=dict(showgrid=False),
-        yaxis=dict(showgrid=True, gridcolor="#E0E8F0", ticksuffix=" €"),
+        yaxis=dict(showgrid=True, gridcolor="#E0E8F0", ticksuffix=" FCFA"),
         font=dict(color="#3D4B5C"),
     )
     st.plotly_chart(fig_monthly, use_container_width=True)
@@ -264,7 +264,7 @@ with col_dep:
             df_cat_dep, x="montant", y="categorie", orientation="h",
             color="montant",
             color_continuous_scale=["#89B8E0", "#2E6DA4", "#1B3A5C"],
-            labels={"montant": "Montant (€)", "categorie": "Catégorie"},
+            labels={"montant": "Montant (FCFA)", "categorie": "Catégorie"},
         )
         fig_dep.update_coloraxes(showscale=False)
         fig_dep.update_layout(
@@ -273,7 +273,7 @@ with col_dep:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(244,247,251,1)",
             font=dict(color="#3D4B5C"),
-            xaxis=dict(ticksuffix=" €", showgrid=True, gridcolor="#E0E8F0"),
+            xaxis=dict(ticksuffix=" FCFA", showgrid=True, gridcolor="#E0E8F0"),
             yaxis=dict(showgrid=False),
         )
         st.plotly_chart(fig_dep, use_container_width=True)
@@ -294,7 +294,7 @@ with col_rev:
             df_cat_rev, x="montant", y="categorie", orientation="h",
             color="montant",
             color_continuous_scale=["#A8E6CF", "#2ECC71", "#1A8040"],
-            labels={"montant": "Montant (€)", "categorie": "Catégorie"},
+            labels={"montant": "Montant (FCFA)", "categorie": "Catégorie"},
         )
         fig_rev.update_coloraxes(showscale=False)
         fig_rev.update_layout(
@@ -303,7 +303,7 @@ with col_rev:
             paper_bgcolor="rgba(0,0,0,0)",
             plot_bgcolor="rgba(244,247,251,1)",
             font=dict(color="#3D4B5C"),
-            xaxis=dict(ticksuffix=" €", showgrid=True, gridcolor="#E0E8F0"),
+            xaxis=dict(ticksuffix=" FCFA", showgrid=True, gridcolor="#E0E8F0"),
             yaxis=dict(showgrid=False),
         )
         st.plotly_chart(fig_rev, use_container_width=True)
@@ -317,7 +317,9 @@ st.subheader("🎯 Limites & objectifs budgétaires")
 
 limites = budget.get("limites", {})
 objectifs = budget.get("objectifs", {})
-revenu_cible = budget.get("revenu_mensuel_cible", 0.0)
+revenus_mensuels = budget.get("revenus_mensuels", {})
+revenu_cible = sum(revenus_mensuels.values()) if revenus_mensuels else budget.get("revenu_mensuel_cible", 0.0)
+total_limites = sum(limites.values()) if limites else 0.0
 
 if not limites and not objectifs and revenu_cible == 0:
     st.info("Aucun budget défini. Rendez-vous sur la page **⚙️ Gestion** pour configurer vos limites et objectifs.")
@@ -325,13 +327,21 @@ else:
     if revenu_cible > 0:
         dep_mois_pct = (depenses_mois / revenu_cible * 100) if revenu_cible else 0
         c1, c2 = st.columns(2)
-        c1.metric("🎯 Revenu mensuel cible", f"{revenu_cible:,.2f} €")
+        c1.metric("💰 Revenus mensuels prévus", f"{revenu_cible:,.0f} FCFA")
         c2.metric(
-            f"📊 Dépenses / Cible ({months_fr[current_month]})",
-            f"{depenses_mois:,.2f} €",
+            f"📊 Dépenses / Revenus ({months_fr[current_month]})",
+            f"{depenses_mois:,.0f} FCFA",
             delta=f"{dep_mois_pct:.1f} %",
             delta_color="inverse",
         )
+        
+        # Alerte dépassement budget
+        if total_limites > revenu_cible:
+            depassement = total_limites - revenu_cible
+            st.error(
+                f"⚠️ **Budget déséquilibré !** Vos limites de dépenses ({total_limites:,.0f} FCFA) "
+                f"dépassent vos revenus prévus de **{depassement:,.0f} FCFA**"
+            )
 
     if limites:
         st.markdown("##### 🔴 Limites de dépenses par catégorie (mois en cours)")
@@ -349,8 +359,8 @@ else:
             rows.append(
                 {
                     "Catégorie": cat,
-                    "Limite (€)": f"{limit:,.2f}",
-                    "Dépensé (€)": f"{spent:,.2f}",
+                    "Limite (FCFA)": f"{limit:,.0f}",
+                    "Dépensé (FCFA)": f"{spent:,.0f}",
                     "Utilisation": f"{pct:.1f} %",
                     "Statut": status,
                 }
@@ -365,7 +375,7 @@ else:
         for row in rows:
             cat = row["Catégorie"]
             limit = limites[cat]
-            spent_val = float(row["Dépensé (€)"].replace(",", "").replace(" ", ""))
+            spent_val = float(row["Dépensé (FCFA)"].replace(",", "").replace(" ", ""))
             pct_val = min(spent_val / limit, 1.0) if limit > 0 else 0
             color = "#2ECC71" if pct_val <= 0.8 else ("#F0A500" if pct_val <= 1.0 else "#E74C3C")
             st.markdown(
@@ -396,8 +406,8 @@ else:
             obj_rows.append(
                 {
                     "Catégorie": cat,
-                    "Objectif (€)": f"{obj:,.2f}",
-                    "Atteint (€)": f"{earned:,.2f}",
+                    "Objectif (FCFA)": f"{obj:,.0f}",
+                    "Atteint (FCFA)": f"{earned:,.0f}",
                     "Progression": f"{pct:.1f} %",
                     "Statut": status,
                 }
@@ -424,7 +434,7 @@ else:
         .assign(
             Type=lambda d: d["type"].map({"depense": "💸 Dépense", "revenu": "💰 Revenu"}),
             Date=lambda d: d["date"].dt.strftime("%d/%m/%Y"),
-            Montant=lambda d: d["montant"].map(lambda x: f"{x:,.2f} €"),
+            Montant=lambda d: d["montant"].map(lambda x: f"{x:,.0f} FCFA"),
         )
         [["Date", "Type", "categorie", "Montant", "description"]]
         .rename(columns={"categorie": "Catégorie", "description": "Description"})
