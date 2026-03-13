@@ -1,27 +1,4 @@
 {
-  "users": {
-    "Dylane": {
-      "password_hash": "82347085f6a4bc822ece8ef9299e3df95bc5ab07841c84b737df71104d07482e",
-      "salt": "d9a5280d7f92eb51d70656a7144b0cc0",
-      "email": "dylanetraderinvestor@gmail.com",
-      "created_at": "2026-03-13T02:16:49.771143",
-      "last_login": "2026-03-13T02:17:12.692367",
-      "preferences": {
-        "theme": "light",
-        "widgets": [
-          "depenses_ytd",
-          "revenus_ytd",
-          "solde",
-          "depenses_mois"
-        ]
-      }
-    }
-  },
-  "sessions": {
-    "3af12affbfe0e8260516e5ca6856807575da3b464a48d5d9de22d2e3408b223f": {
-      "username": "Dylane",
-      "created_at": "2026-03-13T02:17:12.692759",
-      "expires_at": "2026-03-20T02:17:12.692792"
-    }
-  }
+  "users": {},
+  "sessions": {}
 }
