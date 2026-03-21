@@ -4,7 +4,13 @@ With authentication system.
 """
 
 import streamlit as st
-from data.auth import authenticate, register_user, validate_session, logout, user_exists, change_password
+from data.auth import (
+    authenticate, register_user, validate_session, logout, user_exists,
+    change_password, get_user_preferences, save_user_preferences,
+    mark_notifications_read,
+)
+from utils.notifications import generate_notifications, get_unread_count, get_notifications
+from utils.email_service import send_weekly_report, should_send_weekly_report
 
 st.set_page_config(
     page_title="Suivi de Dépenses",
@@ -195,6 +201,12 @@ def show_login_page():
                 new_email = st.text_input("📧 Email (optionnel)", key="reg_email")
                 new_password = st.text_input("🔑 Mot de passe", type="password", key="reg_password")
                 confirm_password = st.text_input("🔑 Confirmer le mot de passe", type="password", key="reg_confirm")
+                new_api_key = st.text_input(
+                    "🤖 Clé API Anthropic (optionnel)",
+                    type="password",
+                    key="reg_api_key",
+                    help="Nécessaire pour utiliser l'assistant IA. Vous pouvez la configurer plus tard.",
+                )
                 submitted = st.form_submit_button("Créer un compte", use_container_width=True)
                 
                 if submitted:
@@ -203,7 +215,7 @@ def show_login_page():
                     elif new_password != confirm_password:
                         st.error("Les mots de passe ne correspondent pas.")
                     else:
-                        success, message = register_user(new_username, new_password, new_email)
+                        success, message = register_user(new_username, new_password, new_email, new_api_key)
                         if success:
                             st.success(message)
                         else:
@@ -212,7 +224,21 @@ def show_login_page():
 
 def show_authenticated_home():
     """Display the home page for authenticated users."""
-    # Sidebar with user info
+    username = st.session_state.username
+
+    # ── Auto-generate notifications on load ───────────────────────────────────
+    if not st.session_state.get("notifications_generated"):
+        generate_notifications(username)
+        st.session_state["notifications_generated"] = True
+
+    # ── Auto-send weekly report if due (silent, non-blocking) ────────────────
+    if should_send_weekly_report(username):
+        try:
+            send_weekly_report(username)
+        except Exception:  # noqa: BLE001
+            pass  # Failures are silent on auto-send; user can retry manually
+
+    # ── Sidebar ───────────────────────────────────────────────────────────────
     with st.sidebar:
         st.markdown(
             f"""
@@ -226,21 +252,114 @@ def show_authenticated_home():
             <hr style="border-color:rgba(255,255,255,0.25); margin: 0.5rem 0 1rem;" />
             <div style="text-align:center; padding: 0.5rem;">
                 <p style="margin:0; font-size:0.85rem;">👤 Connecté en tant que</p>
-                <p style="margin:0; font-weight:700;">{st.session_state.username}</p>
+                <p style="margin:0; font-weight:700;">{username}</p>
             </div>
             """,
             unsafe_allow_html=True,
         )
-        
+
         st.markdown("---")
-        
+
+        # ── 🤖 AI Configuration ───────────────────────────────────────────────
+        prefs = get_user_preferences(username)
+        with st.expander("🤖 Configuration IA"):
+            ai_key = st.text_input(
+                "Clé API Anthropic",
+                value=prefs.get("anthropic_api_key", ""),
+                type="password",
+                key="sidebar_api_key",
+            )
+            ai_model = st.selectbox(
+                "Modèle",
+                options=[
+                    "claude-3-haiku-20240307",
+                    "claude-3-sonnet-20240229",
+                    "claude-3-opus-20240229",
+                ],
+                index=[
+                    "claude-3-haiku-20240307",
+                    "claude-3-sonnet-20240229",
+                    "claude-3-opus-20240229",
+                ].index(prefs.get("anthropic_model", "claude-3-haiku-20240307")),
+                key="sidebar_ai_model",
+            )
+            if st.button("💾 Sauvegarder IA", key="save_ai_config"):
+                prefs["anthropic_api_key"] = ai_key
+                prefs["anthropic_model"] = ai_model
+                save_user_preferences(username, prefs)
+                st.success("✅ Configuration IA sauvegardée.")
+
+        # ── 🔔 Notifications ──────────────────────────────────────────────────
+        unread = get_unread_count(username)
+        notif_label = f"🔔 Notifications ({unread} non lues)" if unread else "🔔 Notifications"
+        with st.expander(notif_label):
+            notifications = get_notifications(username)
+            read_ids = set(prefs.get("notifications_read", []))
+            if not notifications:
+                st.info("Aucune notification.")
+            else:
+                for notif in notifications[:5]:
+                    is_read = notif["id"] in read_ids
+                    opacity = "0.6" if is_read else "1"
+                    st.markdown(
+                        f'<div style="opacity:{opacity}; margin-bottom:8px;">'
+                        f'<strong>{notif["title"]}</strong><br/>'
+                        f'<span style="font-size:0.85rem;">{notif["message"]}</span>'
+                        f'</div>',
+                        unsafe_allow_html=True,
+                    )
+            if notifications:
+                if st.button("✅ Tout marquer comme lu", key="mark_read_btn"):
+                    mark_notifications_read(username)
+                    st.rerun()
+            if st.button("🔄 Rafraîchir", key="refresh_notifs_btn"):
+                generate_notifications(username)
+                st.rerun()
+
+        # ── 📧 Email reports ──────────────────────────────────────────────────
+        with st.expander("📧 Rapports par email"):
+            email_enabled = st.toggle(
+                "Activer les rapports hebdomadaires",
+                value=prefs.get("email_reports_enabled", False),
+                key="email_toggle",
+            )
+            if email_enabled:
+                smtp_cfg = prefs.get("smtp_config") or {}
+                smtp_server = st.text_input("Serveur SMTP", value=smtp_cfg.get("server", "smtp.gmail.com"), key="smtp_server")
+                smtp_port = st.number_input("Port SMTP", value=int(smtp_cfg.get("port", 587)), min_value=1, max_value=65535, key="smtp_port")
+                smtp_email = st.text_input("Email expéditeur", value=smtp_cfg.get("email", ""), key="smtp_email")
+                smtp_password = st.text_input("Mot de passe SMTP", value=smtp_cfg.get("password", ""), type="password", key="smtp_password")
+                if st.button("💾 Sauvegarder SMTP", key="save_smtp_btn"):
+                    prefs["email_reports_enabled"] = True
+                    prefs["smtp_config"] = {
+                        "server": smtp_server,
+                        "port": smtp_port,
+                        "email": smtp_email,
+                        "password": smtp_password,
+                    }
+                    save_user_preferences(username, prefs)
+                    st.success("✅ Configuration email sauvegardée.")
+                if st.button("📤 Envoyer maintenant", key="send_report_btn"):
+                    ok, msg = send_weekly_report(username)
+                    if ok:
+                        st.success(msg)
+                    else:
+                        st.error(msg)
+            else:
+                if prefs.get("email_reports_enabled", False):
+                    prefs["email_reports_enabled"] = False
+                    save_user_preferences(username, prefs)
+
+        st.markdown("---")
+
         # Logout button
         if st.button("🚪 Déconnexion", use_container_width=True):
             logout(st.session_state.session_token)
             st.session_state.session_token = None
             st.session_state.username = None
+            st.session_state.notifications_generated = False
             st.rerun()
-        
+
         # Change password
         with st.expander("🔐 Changer le mot de passe"):
             old_pwd = st.text_input("Ancien mot de passe", type="password", key="old_pwd")
@@ -250,7 +369,7 @@ def show_authenticated_home():
                 if new_pwd != confirm_pwd:
                     st.error("Les mots de passe ne correspondent pas.")
                 else:
-                    success, msg = change_password(st.session_state.username, old_pwd, new_pwd)
+                    success, msg = change_password(username, old_pwd, new_pwd)
                     if success:
                         st.success(msg)
                     else:
@@ -260,7 +379,7 @@ def show_authenticated_home():
     st.title("💰 Suivi de Dépenses – Budget Personnel")
     st.markdown(
         f"""
-        Bienvenue **{st.session_state.username}** dans votre application de gestion de budget personnel.
+        Bienvenue **{username}** dans votre application de gestion de budget personnel.
 
         Utilisez le menu de navigation sur la gauche pour accéder aux pages :
 
@@ -271,6 +390,7 @@ def show_authenticated_home():
         | 📅 **Calendrier** | Vue calendaire intelligente de vos transactions |
         | 📈 **Analyses** | Analyses comparatives, prévisions et tendances |
         | 📄 **Rapports** | Export PDF/Excel de vos rapports personnalisés |
+        | 🤖 **Assistant** | Chatbot IA pour conseils et analyses financières |
         """,
         unsafe_allow_html=True,
     )
