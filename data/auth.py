@@ -7,6 +7,7 @@ import json
 import os
 import hashlib
 import secrets
+import uuid
 from datetime import datetime, timedelta
 
 AUTH_FILE = os.path.join(os.path.dirname(__file__), "users.json")
@@ -45,7 +46,7 @@ def _save_auth(data: dict) -> None:
         json.dump(data, f, ensure_ascii=False, indent=2, default=str)
 
 
-def register_user(username: str, password: str, email: str = "") -> tuple[bool, str]:
+def register_user(username: str, password: str, email: str = "", anthropic_api_key: str = "") -> tuple[bool, str]:
     """
     Register a new user.
     Returns (success, message).
@@ -76,6 +77,13 @@ def register_user(username: str, password: str, email: str = "") -> tuple[bool, 
         "preferences": {
             "theme": "light",
             "widgets": ["depenses_ytd", "revenus_ytd", "solde", "depenses_mois"],
+            "anthropic_api_key": anthropic_api_key,
+            "anthropic_model": "claude-3-haiku-20240307",
+            "notifications": [],
+            "notifications_read": [],
+            "email_reports_enabled": bool(email),
+            "smtp_config": {},
+            "last_weekly_report": None,
         }
     }
     
@@ -147,22 +155,6 @@ def logout(session_token: str) -> None:
         _save_auth(data)
 
 
-def get_user_preferences(username: str) -> dict:
-    """Get user preferences."""
-    data = _load_auth()
-    if username in data["users"]:
-        return data["users"][username].get("preferences", {})
-    return {}
-
-
-def save_user_preferences(username: str, preferences: dict) -> None:
-    """Save user preferences."""
-    data = _load_auth()
-    if username in data["users"]:
-        data["users"][username]["preferences"] = preferences
-        _save_auth(data)
-
-
 def change_password(username: str, old_password: str, new_password: str) -> tuple[bool, str]:
     """Change user password."""
     data = _load_auth()
@@ -197,3 +189,102 @@ def user_exists() -> bool:
     """Check if at least one user exists."""
     data = _load_auth()
     return len(data["users"]) > 0
+
+
+def get_user_email(username: str) -> str:
+    """Get a user's email address."""
+    data = _load_auth()
+    if username in data["users"]:
+        return data["users"][username].get("email", "")
+    return ""
+
+
+def _ensure_new_prefs(prefs: dict) -> dict:
+    """Ensure new preference fields exist with default values (backward-compat)."""
+    defaults = {
+        "anthropic_api_key": "",
+        "anthropic_model": "claude-3-haiku-20240307",
+        "notifications": [],
+        "notifications_read": [],
+        "email_reports_enabled": False,
+        "smtp_config": {},
+        "last_weekly_report": None,
+    }
+    for key, val in defaults.items():
+        if key not in prefs:
+            prefs[key] = val
+    return prefs
+
+
+def get_user_preferences(username: str) -> dict:
+    """Get user preferences."""
+    data = _load_auth()
+    if username in data["users"]:
+        prefs = data["users"][username].get("preferences", {})
+        return _ensure_new_prefs(prefs)
+    return _ensure_new_prefs({})
+
+
+def save_user_preferences(username: str, preferences: dict) -> None:
+    """Save user preferences."""
+    data = _load_auth()
+    if username in data["users"]:
+        data["users"][username]["preferences"] = preferences
+        _save_auth(data)
+
+
+def add_notification(username: str, notif_type: str, title: str, message: str) -> None:
+    """Add a notification to a user's preferences."""
+    data = _load_auth()
+    if username not in data["users"]:
+        return
+    prefs = data["users"][username].get("preferences", {})
+    prefs = _ensure_new_prefs(prefs)
+    notif = {
+        "id": str(uuid.uuid4()),
+        "type": notif_type,
+        "title": title,
+        "message": message,
+        "created_at": datetime.now().isoformat(),
+    }
+    prefs["notifications"].append(notif)
+    data["users"][username]["preferences"] = prefs
+    _save_auth(data)
+
+
+def mark_notifications_read(username: str) -> None:
+    """Mark all notifications as read for a user."""
+    data = _load_auth()
+    if username not in data["users"]:
+        return
+    prefs = data["users"][username].get("preferences", {})
+    prefs = _ensure_new_prefs(prefs)
+    all_ids = [n["id"] for n in prefs["notifications"]]
+    prefs["notifications_read"] = list(set(prefs.get("notifications_read", []) + all_ids))
+    data["users"][username]["preferences"] = prefs
+    _save_auth(data)
+
+
+def clear_notifications(username: str) -> None:
+    """Remove all notifications for a user."""
+    data = _load_auth()
+    if username not in data["users"]:
+        return
+    prefs = data["users"][username].get("preferences", {})
+    prefs = _ensure_new_prefs(prefs)
+    prefs["notifications"] = []
+    prefs["notifications_read"] = []
+    data["users"][username]["preferences"] = prefs
+    _save_auth(data)
+
+
+def set_last_weekly_report(username: str) -> None:
+    """Record that the weekly report was sent now."""
+    data = _load_auth()
+    if username not in data["users"]:
+        return
+    prefs = data["users"][username].get("preferences", {})
+    prefs = _ensure_new_prefs(prefs)
+    prefs["last_weekly_report"] = datetime.now().isoformat()
+    data["users"][username]["preferences"] = prefs
+    _save_auth(data)
