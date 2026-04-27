@@ -1,4 +1,42 @@
 {
-  "users": {},
-  "sessions": {}
+  "users": {
+    "dylane": {
+      "password_hash": "203beb372bf4a8a38cb797b8b3fa7e5ed2e70c363998c517bfc8f143df349e92",
+      "salt": "740da2692e156ae4fcbec99900163c94",
+      "email": "",
+      "created_at": "2026-04-27T12:36:21.429626",
+      "last_login": "2026-04-27T12:36:33.314117",
+      "preferences": {
+        "theme": "light",
+        "widgets": [
+          "depenses_ytd",
+          "revenus_ytd",
+          "solde",
+          "depenses_mois"
+        ],
+        "anthropic_api_key": "",
+        "anthropic_model": "claude-3-haiku-20240307",
+        "notifications": [
+          {
+            "id": "57713080-e2b6-4d66-9c5e-bb3792e5ed2e",
+            "type": "reminder",
+            "title": "📝 Rappel de saisie",
+            "message": "Vous n'avez pas enregistré de transactions cette semaine. Pensez à mettre à jour votre budget !",
+            "created_at": "2026-04-27T12:36:33.442285"
+          }
+        ],
+        "notifications_read": [],
+        "email_reports_enabled": false,
+        "smtp_config": {},
+        "last_weekly_report": null
+      }
+    }
+  },
+  "sessions": {
+    "6e3747717bfa31e9a5d5df4f0b5910e504c799671975fd29c31f3f127031d3a1": {
+      "username": "dylane",
+      "created_at": "2026-04-27T12:36:33.314201",
+      "expires_at": "2026-05-04T12:36:33.314215"
+    }
+  }
 }

@@ -381,16 +381,7 @@ def show_authenticated_home():
         f"""
         Bienvenue **{username}** dans votre application de gestion de budget personnel.
 
-        Utilisez le menu de navigation sur la gauche pour accéder aux pages :
-
-        | Page | Description |
-        |------|-------------|
-        | 📊 **Dashboard** | Visualisez vos dépenses, revenus, tendances, graphiques avancés et alertes |
-        | ⚙️ **Gestion** | Gérez vos transactions avec recherche avancée, catégories et budget |
-        | 📅 **Calendrier** | Vue calendaire intelligente de vos transactions |
-        | 📈 **Analyses** | Analyses comparatives, prévisions et tendances |
-        | 📄 **Rapports** | Export PDF/Excel de vos rapports personnalisés |
-        | 🤖 **Assistant** | Chatbot IA pour conseils et analyses financières |
+        Utilisez le menu de navigation sur la gauche pour accéder aux pages.
         """,
         unsafe_allow_html=True,
     )
